@@ -64,20 +64,22 @@ export default function GuestPortal({ language }: { language: Language }) {
 
   useEffect(() => {
     if (!supabase || !user) { setComments([]); setIsAdmin(false); return }
+    const client = supabase
     let active = true
-    supabase.from('admin_users').select('user_id').eq('user_id', user.id).maybeSingle().then(({ data }) => { if (active) setIsAdmin(Boolean(data)) })
+    client.from('admin_users').select('user_id').eq('user_id', user.id).maybeSingle().then(({ data }) => { if (active) setIsAdmin(Boolean(data)) })
     void loadComments()
-    const channel = supabase.channel('guest-comments').on('postgres_changes', { event: '*', schema: 'public', table: 'guest_comments' }, () => void loadComments()).subscribe()
-    return () => { active = false; void supabase.removeChannel(channel) }
+    const channel = client.channel('guest-comments').on('postgres_changes', { event: '*', schema: 'public', table: 'guest_comments' }, () => void loadComments()).subscribe()
+    return () => { active = false; void client.removeChannel(channel) }
   }, [user, loadComments])
 
   useEffect(() => {
     if (!supabase || !user) return
-    const heartbeat = () => { if (document.visibilityState === 'visible') void supabase.rpc('heartbeat_presence') }
+    const client = supabase
+    const heartbeat = () => { if (document.visibilityState === 'visible') void client.rpc('heartbeat_presence') }
     heartbeat()
     const timer = window.setInterval(heartbeat, hotelConfig.presence.heartbeatMs)
     const onActivity = () => heartbeat()
-    const onLeave = () => { void supabase.rpc('leave_presence') }
+    const onLeave = () => { void client.rpc('leave_presence') }
     document.addEventListener('visibilitychange', onActivity)
     window.addEventListener('pagehide', onLeave)
     return () => { window.clearInterval(timer); document.removeEventListener('visibilitychange', onActivity); window.removeEventListener('pagehide', onLeave) }

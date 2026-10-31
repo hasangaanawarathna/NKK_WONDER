@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   ArrowRight,
   CalendarDays,
@@ -11,6 +11,7 @@ import {
   Edit3,
   Flower2,
   LayoutGrid,
+  LogIn,
   MapPin,
   Menu,
   Plus,
@@ -23,6 +24,7 @@ import {
 } from 'lucide-react'
 import GuestPortal from './GuestPortal'
 import { hotelConfig } from './config'
+import { supabase, supabaseConfigured } from './lib/supabase'
 
 type Language = 'en' | 'ja'
 type Page = 'home' | 'events' | 'floors' | 'community' | 'manage'
@@ -169,7 +171,7 @@ function App() {
         {page === 'events' && <Events t={t} events={events} language={language} selectedEvent={selectedEvent} onSelect={setSelectedEvent} onPage={go} onFind={(location) => { if (location.floor) setSelectedFloor(location.floor); setHighlightedRoom(location.room); go('floors') }} />}
         {page === 'floors' && <Floors t={t} selectedFloor={selectedFloor} onFloor={(floor) => { setSelectedFloor(floor); setHighlightedRoom(null) }} highlightedRoom={highlightedRoom} events={events} />}
         {page === 'community' && <GuestPortal language={language} />}
-        {page === 'manage' && <Management t={t} language={language} events={events} onPersist={persist} />}
+        {page === 'manage' && <AdminManagement t={t} language={language} events={events} onPersist={persist} onCommunity={() => go('community')} />}
       </main>
       <footer className="site-footer"><span>© 2027 NKK Wonder Hotel</span><div className="footer-contact">{hotelConfig.contact.phone ? <a href={`tel:${hotelConfig.contact.phone}`}>{hotelConfig.contact.phone}</a> : <span>Phone not configured</span>}{hotelConfig.contact.email ? <a href={`mailto:${hotelConfig.contact.email}`}>{hotelConfig.contact.email}</a> : <span>Email not configured</span>}</div><button onClick={() => go('home')}>{t.reception} <ArrowRight size={14} /></button></footer>
     </div>
@@ -232,6 +234,27 @@ function Management({ t, language, events, onPersist }: { t: Translations; langu
   const deleteEvent = (id: string) => { if (window.confirm('Delete this event?')) onPersist(events.filter(event => event.id !== id)) }
   const addItem = () => { if (!editing || !draftItem.time || !draftItem.title) return; setEditing({ ...editing, timetable: [...editing.timetable, { ...draftItem, id: crypto.randomUUID() }] }); setDraftItem({ time: '', title: '' }) }
   return <div className="page content-width"><div className="page-intro"><span className="eyebrow">NKK Wonder · {t.manage}</span><h1>{t.management}</h1><p>{t.managementSub}</p></div><div className="notice"><Settings size={17} /><span>{t.localNote}</span></div>{editing ? <div className="editor-card"><div className="editor-head"><h2>{editing.id ? t.edit : t.add}</h2><button className="icon-button" onClick={() => setEditing(null)} aria-label={t.cancel}><X /></button></div><div className="form-grid"><label>{t.name}<input value={editing.name} onChange={e => setEditing({ ...editing, name: e.target.value })} /></label><label>日本語<input value={editing.nameJa} onChange={e => setEditing({ ...editing, nameJa: e.target.value })} /></label><label>{t.date}<input type="date" value={editing.date} onChange={e => setEditing({ ...editing, date: e.target.value })} /></label><label>{t.floor}<select value={editing.location.floor ?? ''} onChange={e => setEditing({ ...editing, location: { ...editing.location, floor: e.target.value ? Number(e.target.value) as Floor : null } })}><option value="">— {t.confirm} —</option>{floors.map(floor => <option key={floor.number} value={floor.number}>{floor.number}{t.floor}</option>)}</select></label><label>{t.room}<input value={editing.location.room ?? ''} onChange={e => setEditing({ ...editing, location: { ...editing.location, room: e.target.value || null } })} placeholder="e.g. R2" /></label></div><div className="editor-schedule"><h3>{t.timetable}</h3>{editing.timetable.map(item => <div className="schedule-edit-row" key={item.id}><input type="time" value={item.time} onChange={e => setEditing({ ...editing, timetable: editing.timetable.map(row => row.id === item.id ? { ...row, time: e.target.value } : row) })} /><input value={item.title} onChange={e => setEditing({ ...editing, timetable: editing.timetable.map(row => row.id === item.id ? { ...row, title: e.target.value } : row) })} /><button className="icon-button danger" onClick={() => setEditing({ ...editing, timetable: editing.timetable.filter(row => row.id !== item.id) })} aria-label={t.delete}><Trash2 size={16} /></button></div>)}<div className="schedule-edit-row add-row"><input type="time" value={draftItem.time} onChange={e => setDraftItem({ ...draftItem, time: e.target.value })} /><input value={draftItem.title} onChange={e => setDraftItem({ ...draftItem, title: e.target.value })} placeholder={t.addTimetable} /><button className="icon-button" onClick={addItem} aria-label={t.addTimetable}><Plus size={17} /></button></div></div><div className="editor-actions"><button className="secondary-button" onClick={() => setEditing(null)}>{t.cancel}</button><button className="primary-button compact" onClick={save}>{t.save}</button></div></div> : <><div className="management-head"><h2>{events.length} {t.events}</h2><button className="primary-button compact" onClick={() => setEditing({ ...blank })}><Plus size={17} />{t.add}</button></div><div className="manage-list">{events.map(event => <div className="manage-row" key={event.id}><div><b>{language === 'ja' ? event.nameJa || event.name : event.name}</b><small>{formatDate(event.date, language)} · {event.location.floor ? `${event.location.floor}${t.floor} · ${event.location.room}` : t.confirm}</small></div><div><button className="secondary-button small" onClick={() => setEditing({ ...event })}><Edit3 size={14} />{t.edit}</button><button className="icon-button danger" onClick={() => deleteEvent(event.id)} aria-label={t.delete}><Trash2 size={16} /></button></div></div>)}</div></>}</div>
+}
+
+function AdminManagement({ t, language, events, onPersist, onCommunity }: { t: Translations; language: Language; events: Event[]; onPersist: (events: Event[]) => void; onCommunity: () => void }) {
+  const [state, setState] = useState<'loading' | 'signed-out' | 'denied' | 'admin'>('loading')
+  useEffect(() => {
+    if (!supabaseConfigured || !supabase) { setState('signed-out'); return }
+    const client = supabase
+    let active = true
+    const check = async () => {
+      const { data: { session } } = await client.auth.getSession()
+      if (!active) return
+      if (!session) { setState('signed-out'); return }
+      const { data } = await client.from('admin_users').select('user_id').eq('user_id', session.user.id).maybeSingle()
+      if (active) setState(data ? 'admin' : 'denied')
+    }
+    void check()
+    const { data } = client.auth.onAuthStateChange(() => void check())
+    return () => { active = false; data.subscription.unsubscribe() }
+  }, [])
+  if (state === 'admin') return <Management t={t} language={language} events={events} onPersist={onPersist} />
+  return <div className="page content-width"><div className="page-intro"><span className="eyebrow">NKK Wonder · Admin</span><h1>{t.management}</h1><p>{state === 'loading' ? 'Checking administrator access…' : state === 'denied' ? 'This screen is available only to hotel administrators.' : 'Sign in with an administrator account to open event management.'}</p></div>{!supabaseConfigured && <div className="notice"><Settings size={17} /><span>Supabase must be configured before administrator access can be verified.</span></div>}<button className="primary-button admin-login-link" onClick={onCommunity}><LogIn size={16} />Guest sign-in</button></div>
 }
 
 export default App
