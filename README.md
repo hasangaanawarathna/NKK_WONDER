@@ -11,6 +11,22 @@ npm run dev
 
 Open `http://localhost:5173/`. Create a production build with `npm run build` and preview it with `npm run preview`.
 
+## GitHub Pages deployment
+
+This is a React + TypeScript application built with Vite. The Vite base path is
+configured as `/NKK_WONDER/`, and the workflow publishes the generated `dist`
+directory rather than the source files.
+
+In the repository, open **Settings → Pages** and set **Source** to **GitHub
+Actions**. Do not select **Deploy from a branch**; that mode serves the root
+`index.html`, which intentionally references the Vite development entry point
+`/src/main.tsx` and cannot run directly in a browser.
+
+After pushing to `main`, confirm that **Deploy to GitHub Pages** finishes
+successfully under the repository's **Actions** tab. Then open
+`https://hasangaanawarathna.github.io/NKK_WONDER/` and hard-refresh the page if
+an older cached response is shown.
+
 ## Contact details
 
 Edit `src/config.ts` and set the real `contact.phone` and `contact.email` values. They become clickable `tel:` and `mailto:` links. Empty values display as not configured; the website does not invent contact details.
