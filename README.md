@@ -1,6 +1,6 @@
-# NKK Wonder Hotel · Guest Guide
+# NKK Wonder Hotel Guest Guide
 
-Responsive React, TypeScript, and Vite guest guide with a Supabase-backed guest community.
+A simple React, TypeScript, and Vite website containing the supplied hotel branding, Student Event timetable, floor guide, anonymous online visitor count, and public feedback.
 
 ## Run locally
 
@@ -9,46 +9,36 @@ npm install
 npm run dev
 ```
 
-Create a production build with `npm run build` and preview it with `npm run preview`.
+Open `http://localhost:5173/`. Create a production build with `npm run build` and preview it with `npm run preview`.
 
 ## Contact details
 
-Edit `src/config.ts` and set `hotelConfig.contact.phone` and `hotelConfig.contact.email`. Empty values render as “not configured”; the project never invents contact details. Configured values become `tel:` and `mailto:` links.
+Edit `src/config.ts` and set the real `contact.phone` and `contact.email` values. They become clickable `tel:` and `mailto:` links. Empty values display as not configured; the website does not invent contact details.
 
-## Supabase setup
+## Shared visitor count and feedback
 
-Authentication, shared presence, and comments require a Supabase project. Until configured, the Guest community page intentionally displays a setup-required state.
+These two features use Supabase without guest accounts or login.
 
-1. Create a Supabase project.
-2. Open the Supabase SQL editor and run `supabase/migrations/202610310001_guest_portal.sql`.
+1. Create or reuse a Supabase project.
+2. Run `supabase/migrations/202610310002_public_presence_feedback.sql` in the Supabase SQL editor.
 3. Copy `.env.example` to `.env.local`.
-4. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` using the project URL and public anon key. Never put a service-role key in frontend environment files.
-5. In Supabase Authentication, configure the Site URL and allowed redirect URLs for local and production environments.
-6. Enable email/password authentication. Decide whether email confirmation is required for your deployment.
-7. Create a normal account through the site. Promote it from the Supabase SQL editor, never from frontend code:
+4. Add the Supabase project URL and public anon key. Never add the service-role key to frontend files.
+5. Restart Vite and redeploy the production build.
 
-```sql
-insert into public.admin_users (user_id)
-select id from auth.users where email = 'ADMIN_EMAIL_HERE';
-```
+Until those values and the migration are configured, the site displays a setup-required message rather than a fake visitor count or local feedback.
 
-8. For instant comment refresh, add `public.guest_comments` to the `supabase_realtime` publication. The UI also refreshes after local mutations.
-9. Restart Vite after changing environment variables.
+### Backend behavior
 
-## Security model
+- Each browser tab has a random anonymous ID stored only in `sessionStorage`; the visitor count is always read from Supabase.
+- Visible tabs send a heartbeat every 30 seconds.
+- Visitors without a heartbeat for 90 seconds are excluded. Closing a tab also attempts an immediate departure call.
+- Feedback is shared through Supabase.
+- The database applies a 2–500 character limit and a 30-second per-visitor posting cooldown.
+- Direct table access is revoked. Public access is limited to narrowly scoped database functions.
 
-- Guest profiles are created by an `auth.users` trigger.
-- Administrator membership is stored separately in `admin_users`; clients cannot insert, update, or delete administrator rows.
-- Row-level security enforces comment ownership. Guests can edit/delete their own comments; administrators can delete any comment.
-- Comment author identity and timestamps are protected by a database trigger.
-- A database trigger enforces a 20-second posting cooldown and a 2–600 character limit.
-- Presence heartbeats run every 30 seconds. Admin queries consider a user online only when their last heartbeat is within 90 seconds.
-- Sign-out removes presence immediately. Closed tabs attempt a departure call; lost connections are handled by the 90-second timeout.
-- Only administrators can query the shared presence table. Emails are never included in comments or presence results.
+## Hotel information
 
-## Existing prototype behavior
-
-- The Manage events screen still stores event changes in `localStorage` in the current browser only. It is not secure authentication or shared storage.
-- The supplied Student Event has no invented floor or room; guests are told to confirm with reception.
-- The fourth-floor guide preserves the two supplied `R3` labels and displays a confirmation warning.
-- The interactive floor guide is schematic and not a claim of precise navigation.
+- The only event is the supplied Student Event on 15 February 2027.
+- Its location is shown as “Please confirm with reception.”
+- The fourth floor preserves both supplied rooms labelled `R3` and includes a reception clarification note.
+- Floor layouts are schematic and not presented as precise navigation.

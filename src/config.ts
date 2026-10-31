@@ -7,9 +7,8 @@ export const hotelConfig = {
     heartbeatMs: 30_000,
     onlineTimeoutSeconds: 90,
   },
-  comments: {
-    minLength: 2,
-    maxLength: 600,
-    cooldownSeconds: 20,
+  feedback: {
+    maxLength: 500,
+    cooldownSeconds: 30,
   },
 } as const
