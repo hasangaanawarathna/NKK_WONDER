@@ -21,9 +21,11 @@ import {
   Users,
   X,
 } from 'lucide-react'
+import GuestPortal from './GuestPortal'
+import { hotelConfig } from './config'
 
 type Language = 'en' | 'ja'
-type Page = 'home' | 'events' | 'floors' | 'manage'
+type Page = 'home' | 'events' | 'floors' | 'community' | 'manage'
 type Floor = 1 | 2 | 3 | 4
 type Location = { floor: Floor | null; room: string | null }
 type TimetableItem = { id: string; time: string; title: string }
@@ -81,7 +83,7 @@ const floors: { number: Floor; label: string; jp: string; items: string[] }[] = 
 
 const copy = {
   en: {
-    home: 'Home', events: 'Events', floors: 'Floor guide', reception: 'Reception', manage: 'Manage events',
+    home: 'Home', events: 'Events', floors: 'Floor guide', reception: 'Reception', manage: 'Manage events', community: 'Guest community',
     welcome: 'Welcome to NKK Wonder', subtitle: 'Your calm, clear guide to every moment at the hotel.',
     explore: 'Explore the hotel', upcoming: 'Upcoming events', viewAll: 'View all events',
     floorTitle: 'Find your way around', floorSub: 'Select a floor to see its rooms and facilities.',
@@ -99,7 +101,7 @@ const copy = {
     ambiguousText: 'The supplied 4th-floor plan labels two rooms as R3. Please confirm the room label with reception.',
   },
   ja: {
-    home: 'ホーム', events: 'イベント', floors: 'フロアガイド', reception: 'フロント', manage: 'イベント管理',
+    home: 'ホーム', events: 'イベント', floors: 'フロアガイド', reception: 'フロント', manage: 'イベント管理', community: 'ゲスト交流',
     welcome: 'NKK Wonderへようこそ', subtitle: '館内でのひとときを、わかりやすくご案内します。',
     explore: '館内を見る', upcoming: '今後のイベント', viewAll: 'すべてのイベント',
     floorTitle: '館内を探す', floorSub: 'フロアを選ぶと、部屋と施設が表示されます。',
@@ -153,6 +155,7 @@ function App() {
           <button className={page === 'home' ? 'active' : ''} onClick={() => go('home')}>{t.home}</button>
           <button className={page === 'events' ? 'active' : ''} onClick={() => go('events')}>{t.events}</button>
           <button className={page === 'floors' ? 'active' : ''} onClick={() => go('floors')}>{t.floors}</button>
+          <button className={page === 'community' ? 'active' : ''} onClick={() => go('community')}>{t.community}</button>
           <button className={page === 'manage' ? 'active' : ''} onClick={() => go('manage')}>{t.manage}</button>
         </nav>
         <div className="header-actions">
@@ -165,9 +168,10 @@ function App() {
         {page === 'home' && <Home t={t} events={events} language={language} onPage={go} onEvent={(event) => { setSelectedEvent(event); setPage('events') }} />}
         {page === 'events' && <Events t={t} events={events} language={language} selectedEvent={selectedEvent} onSelect={setSelectedEvent} onPage={go} onFind={(location) => { if (location.floor) setSelectedFloor(location.floor); setHighlightedRoom(location.room); go('floors') }} />}
         {page === 'floors' && <Floors t={t} selectedFloor={selectedFloor} onFloor={(floor) => { setSelectedFloor(floor); setHighlightedRoom(null) }} highlightedRoom={highlightedRoom} events={events} />}
+        {page === 'community' && <GuestPortal language={language} />}
         {page === 'manage' && <Management t={t} language={language} events={events} onPersist={persist} />}
       </main>
-      <footer><span>© 2027 NKK Wonder Hotel</span><button onClick={() => go('home')}>{t.reception} <ArrowRight size={14} /></button></footer>
+      <footer className="site-footer"><span>© 2027 NKK Wonder Hotel</span><div className="footer-contact">{hotelConfig.contact.phone ? <a href={`tel:${hotelConfig.contact.phone}`}>{hotelConfig.contact.phone}</a> : <span>Phone not configured</span>}{hotelConfig.contact.email ? <a href={`mailto:${hotelConfig.contact.email}`}>{hotelConfig.contact.email}</a> : <span>Email not configured</span>}</div><button onClick={() => go('home')}>{t.reception} <ArrowRight size={14} /></button></footer>
     </div>
   )
 }
