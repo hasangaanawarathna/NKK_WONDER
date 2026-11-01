@@ -63,6 +63,14 @@ begin
 end;
 $$;
 
+-- Functions are executable by PUBLIC by default in PostgreSQL. Limit these
+-- guest-facing entry points to the roles used by the application.
+revoke execute on function public.heartbeat_visitor(uuid) from public;
+revoke execute on function public.leave_visitor(uuid) from public;
+revoke execute on function public.online_visitor_count() from public;
+revoke execute on function public.list_public_feedback() from public;
+revoke execute on function public.submit_public_feedback(uuid, text, text) from public;
+
 grant execute on function public.heartbeat_visitor(uuid) to anon, authenticated;
 grant execute on function public.leave_visitor(uuid) to anon, authenticated;
 grant execute on function public.online_visitor_count() to anon, authenticated;

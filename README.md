@@ -36,7 +36,7 @@ Edit `src/config.ts` and set the real `contact.phone` and `contact.email` values
 These two features use Supabase without guest accounts or login.
 
 1. Create or reuse a Supabase project.
-2. Run `supabase/migrations/202610310002_public_presence_feedback.sql` in the Supabase SQL editor.
+2. Run every SQL file in `supabase/migrations/` in filename order in the Supabase SQL editor.
 3. Copy `.env.example` to `.env.local`.
 4. Add the Supabase project URL and public anon key. Never add the service-role key to frontend files.
 5. Restart Vite and redeploy the production build.
@@ -58,9 +58,10 @@ The Japanese-first `ご意見・ご感想 / Guest Comments` section reuses the e
 `public_feedback` table and the `list_public_feedback` and
 `submit_public_feedback` RPC functions. Do not create another comments table.
 
-1. In Supabase, open **SQL Editor** and run
-   `supabase/migrations/202610310002_public_presence_feedback.sql` once. The SQL
-   is idempotent and keeps direct anonymous table access revoked.
+1. In Supabase, open **SQL Editor** and run every file in
+   `supabase/migrations/` in filename order. The SQL is idempotent, keeps direct
+   anonymous table access revoked, and restricts RPC execution to the intended
+   Supabase roles.
 2. In **Project Settings → API**, copy the Project URL and the public/publishable
    anon key. Never copy the `service_role` key into this project.
 3. Create `.env.local` from `.env.example` and set:
