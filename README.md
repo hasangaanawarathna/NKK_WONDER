@@ -52,6 +52,35 @@ Until those values and the migration are configured, the site displays a setup-r
 - The database applies a 2–500 character limit and a 30-second per-visitor posting cooldown.
 - Direct table access is revoked. Public access is limited to narrowly scoped database functions.
 
+## Guest Comments deployment checklist
+
+The Japanese-first `ご意見・ご感想 / Guest Comments` section reuses the existing
+`public_feedback` table and the `list_public_feedback` and
+`submit_public_feedback` RPC functions. Do not create another comments table.
+
+1. In Supabase, open **SQL Editor** and run
+   `supabase/migrations/202610310002_public_presence_feedback.sql` once. The SQL
+   is idempotent and keeps direct anonymous table access revoked.
+2. In **Project Settings → API**, copy the Project URL and the public/publishable
+   anon key. Never copy the `service_role` key into this project.
+3. Create `.env.local` from `.env.example` and set:
+
+   ```env
+   VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+   VITE_SUPABASE_ANON_KEY=YOUR_PUBLIC_ANON_KEY
+   ```
+
+4. Restart the Vite development server, then run `npm run build`.
+5. Commit and push to `main`. In GitHub, select **Settings → Pages → Source:
+   GitHub Actions** and wait for the deployment workflow to finish.
+6. Open `https://hasangaanawarathna.github.io/NKK_WONDER/`. The configured Vite
+   base path is `/NKK_WONDER/`.
+
+The client loads at most 100 newest comments and refreshes the shared list every
+30 seconds while the page is visible. Comment text is rendered as React text,
+not raw HTML. The database remains responsible for the 2–500 character rule,
+50-character name limit, default `Guest` name, and per-visitor posting cooldown.
+
 ## Hotel information
 
 - The only event is the supplied Student Event on 15 February 2027.
