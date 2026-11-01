@@ -1,0 +1,13 @@
+# Local environment configuration
+.env
+.env.local
+.env.*.local
+
+# Installed dependencies
+node_modules/
+
+# Production build output
+dist/
+
+# TypeScript incremental build metadata
+*.tsbuildinfo
